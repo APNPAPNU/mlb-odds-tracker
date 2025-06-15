@@ -1,0 +1,203 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLB Odds Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Add your existing CSS styles here */
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        canvas { max-width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>MLB Odds Tracker</h1>
+    <h2>Recent Price Changes</h2>
+    <table id="priceChangesTable">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Game ID</th>
+                <th>Team</th>
+                <th>Sportsbook</th>
+                <th>Home/Away</th>
+                <th>Old Price</th>
+                <th>New Price</th>
+                <th>Change</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <h2>Live Odds Tracking</h2>
+    <canvas id="oddsChart"></canvas>
+    <script>
+        let oddsData = [];
+        let priceChanges = [];
+        let updateCount = 0;
+        const MAX_DATA_POINTS = 50;
+
+        async function fetchMLBOdds() {
+            try {
+                const response = await fetch('https://mlb-odds-tracker-apnu.onrender.com/odds', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (response.ok) return await response.json();
+                throw new Error(`Proxy request failed with status: ${response.status}`);
+            } catch (error) {
+                console.error(`Error making proxy request: ${error.message}`);
+                throw error;
+            }
+        }
+
+        function parseOddsData(data) {
+            if (!data || !data.data) {
+                console.warn("No data found in API response");
+                return [];
+            }
+            const oddsRecords = [];
+            data.data.forEach(game => {
+                const gameId = game.game_id || "Unknown";
+                game.rows.forEach(row => {
+                    const teamInfo = row.display?.Moneyline || {};
+                    const teamName = teamInfo.team_name || "Unknown";
+                    const homeOrAway = row.home_or_away || "Unknown";
+                    for (const [sportsbook, oddsList] of Object.entries(row.odds || {})) {
+                        oddsList.forEach(odds => {
+                            oddsRecords.push({
+                                game_id: gameId,
+                                team_name: teamName,
+                                home_or_away: homeOrAway,
+                                sportsbook: sportsbook,
+                                price: odds.price || "N/A",
+                                market_name: odds.market_name || "N/A",
+                                bet_name: odds.bet_name || "N/A",
+                                timestamp: new Date().toISOString()
+                            });
+                        });
+                    }
+                });
+            });
+            return oddsRecords;
+        }
+
+        function detectPriceChanges(oldData, newData) {
+            if (!oldData.length) return [];
+            const changes = [];
+            newData.forEach(newRecord => {
+                const oldRecord = oldData.find(r =>
+                    r.game_id === newRecord.game_id &&
+                    r.team_name === newRecord.team_name &&
+                    r.sportsbook === newRecord.sportsbook &&
+                    r.home_or_away === newRecord.home_or_away
+                );
+                if (oldRecord && oldRecord.price !== newRecord.price) {
+                    try {
+                        const oldPrice = parseFloat(oldRecord.price);
+                        const newPrice = parseFloat(newRecord.price);
+                        changes.push({
+                            timestamp: new Date().toISOString(),
+                            game_id: newRecord.game_id,
+                            team_name: newRecord.team_name,
+                            sportsbook: newRecord.sportsbook,
+                            home_or_away: newRecord.home_or_away,
+                            old_price: oldPrice,
+                            new_price: newPrice,
+                            change: newPrice - oldPrice
+                        });
+                    } catch (e) {
+                        console.warn(`Invalid price format for ${newRecord.team_name}`);
+                    }
+                }
+            });
+            return changes;
+        }
+
+        function updateTable(changes) {
+            const tbody = document.querySelector("#priceChangesTable tbody");
+            changes.forEach(change => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${new Date(change.timestamp).toLocaleString()}</td>
+                    <td>${change.game_id}</td>
+                    <td>${change.team_name}</td>
+                    <td>${change.sportsbook}</td>
+                    <td>${change.home_or_away}</td>
+                    <td>${change.old_price}</td>
+                    <td>${change.new_price}</td>
+                    <td>${change.change.toFixed(2)}</td>
+                `;
+                tbody.prepend(row);
+            });
+        }
+
+        let chartInstance = null;
+        function updateChart(data) {
+            const ctx = document.getElementById('oddsChart').getContext('2d');
+            const labels = data.map((_, index) => `Update ${index + 1}`);
+            const datasets = [];
+            const sportsbooks = [...new Set(data.flatMap(d => d.data.map(r => r.sportsbook)))];
+            
+            sportsbooks.forEach(sportsbook => {
+                const prices = data.map(d => {
+                    const record = d.data.find(r => r.sportsbook === sportsbook);
+                    return record ? parseFloat(record.price) || 0 : 0;
+                });
+                datasets.push({
+                    label: sportsbook,
+                    data: prices,
+                    borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
+                    fill: false
+                });
+            });
+
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: false, title: { display: true, text: 'Odds Price' } },
+                        x: { title: { display: true, text: 'Update' } }
+                    }
+                }
+            });
+        }
+
+        async function updateOdds() {
+            try {
+                const rawData = await fetchMLBOdds();
+                const newData = parseOddsData(rawData);
+                if (oddsData.length) {
+                    const changes = detectPriceChanges(oddsData[oddsData.length - 1].data, newData);
+                    if (changes.length) {
+                        priceChanges.push(...changes);
+                        updateTable(changes);
+                    }
+                }
+                oddsData.push({ timestamp: new Date().toISOString(), data: newData });
+                if (oddsData.length > MAX_DATA_POINTS) oddsData.shift();
+                updateChart(oddsData);
+                updateCount++;
+                console.log(`Update ${updateCount}: ${newData.length} records`);
+            } catch (error) {
+                console.error(`Update failed: ${error.message}`);
+            }
+        }
+
+        async function startTracking() {
+            await updateOdds();
+            setInterval(updateOdds, 30000); // Update every 30 seconds
+        }
+
+        startTracking();
+    </script>
+</body>
+</html>
+```
