@@ -1,4 +1,5 @@
 import { formatGameName } from './utils.js';
+import { renderArbitrageDesktopTable, renderArbitrageMobileCards } from './rendering.js';
 
 export function findArbitrageOpportunities(data) {
     console.log('🔍 Starting arbitrage analysis...');
@@ -48,9 +49,7 @@ export function findArbitrageOpportunities(data) {
                 console.log(`  📋 ${outcomeType}: ${outcomes.length} books available`);
                 
                 let bestOutcome = null;
-                letかって
-
-System: bestImpliedProb = 1;
+                let bestImpliedProb = 1;
                 
                 outcomes.forEach(outcome => {
                     if (outcome.american_odds) {
@@ -124,6 +123,15 @@ System: bestImpliedProb = 1;
     console.log(`   Unprofitable scenarios: ${arbitrageOpportunities.filter(op => !op.isArbitrage).length}`);
     
     return arbitrageOpportunities.sort((a, b) => b.profit - a.profit);
+}
+
+export function showArbitrageOpportunities() {
+    const opportunities = findArbitrageOpportunities(this.filteredData);
+    if (this.isMobileView) {
+        renderArbitrageMobileCards(opportunities);
+    } else {
+        renderArbitrageDesktopTable(opportunities);
+    }
 }
 
 export function debugDataStructure() {
