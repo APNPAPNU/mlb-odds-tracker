@@ -55,16 +55,16 @@ export function renderDesktopTable() {
             <td class="mobile-hide">${record.sport || ''}</td>
             <td class="mobile-hide">
                 ${record.deeplink && getBookLogo(record.book) ? 
-                    `<button class="deeplink" onclick="window.open('${record.deeplink}', '_blank')">
+                    `<button class="deeplink" data-deeplink="${record.deeplink}">
                         <img src="${getBookLogo(record.book)}" 
                              alt="${record.book}" 
                              style="width: 24px; height: 24px; object-fit: contain;">
                      </button>` 
-                    : (record.deeplink ? `<button class="deeplink" onclick="window.open('${record.deeplink}', '_blank')">${record.book || 'Bet'}</button>` : '')
+                    : (record.deeplink ? `<button class="deeplink" data-deeplink="${record.deeplink}">${record.book || 'Bet'}</button>` : '')
                 }
             </td>
             <td class="mobile-hide">
-                <button class="chart-btn" onclick="dashboard.openHistoricalChart('${record.outcome_id}', ${record.live}, '${record.spread || ''}', dashboard.filteredData[${index}])">📊</button>
+                <button class="chart-btn" data-outcome-id="${record.outcome_id}" data-live="${record.live}" data-spread="${record.spread || ''}" data-index="${index}">📊</button>
             </td>
             <td class="mobile-hide">${this.formatTimestamp(record.last_ts)}</td>
         </tr>
@@ -85,6 +85,7 @@ export function renderMobileCards() {
         const outcomesHtml = market.outcomes.map((outcome, outcomeIndex) => {
             const spreadInfo = outcome.spread ? ` (${outcome.spread})` : '';
             const outcomeDisplayName = outcome.outcome_type + spreadInfo;
+            const recordIndex = this.filteredData.findIndex(r => r.outcome_id === outcome.outcome_id);
             
             return `
                 <div class="compact-outcome">
@@ -107,11 +108,11 @@ export function renderMobileCards() {
                             ${outcome.ev ? (outcome.ev * 100).toFixed(1) + '%' : 'N/A'}
                         </div>
                         <div class="compact-actions">
-                            <button class="compact-btn compact-chart-btn" onclick="dashboard.openHistoricalChart('${outcome.outcome_id}', ${outcome.live}, '${outcome.spread || ''}', dashboard.filteredData.find(r => r.outcome_id === '${outcome.outcome_id}'))">
+                            <button class="compact-btn compact-chart-btn" data-outcome-id="${outcome.outcome_id}" data-live="${outcome.live}" data-spread="${outcome.spread || ''}" data-index="${recordIndex}">
                                 📊
                             </button>
                             ${outcome.deeplink ? 
-                                `<button class="compact-btn compact-bet-btn" onclick="window.open('${outcome.deeplink}', '_blank')">Bet</button>` : ''
+                                `<button class="compact-btn compact-bet-btn" data-deeplink="${outcome.deeplink}">Bet</button>` : ''
                             }
                         </div>
                     </div>
