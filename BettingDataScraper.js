@@ -18,6 +18,8 @@ export class BettingDataScraper {
         this.sortDirection = 'asc';
         this.columnFilters = {};
         
+        console.log('DEBUG: Binding showArbitrageOpportunities:', typeof showArbitrageOpportunities);
+        
         this.init();
     }
 
