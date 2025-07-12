@@ -328,6 +328,242 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// Additional utility functions that may be imported by other files
+export function groupDataByMarket(data) {
+    const marketGroups = {};
+    
+    data.forEach(record => {
+        const gameKey = formatGameName(record);
+        const marketType = record.display_name || record.market_type || 'Unknown';
+        const spreadKey = record.spread || 'no-spread';
+        
+        const marketKey = `${gameKey}_${marketType}_${spreadKey}`;
+        
+        if (!marketGroups[marketKey]) {
+            marketGroups[marketKey] = {
+                game_name: gameKey,
+                display_name: marketType,
+                spread: record.spread,
+                sport: record.sport,
+                live: record.live,
+                outcomes: {}
+            };
+        }
+        
+        if (!marketGroups[marketKey].outcomes[record.outcome_type]) {
+            marketGroups[marketKey].outcomes[record.outcome_type] = [];
+        }
+        
+        marketGroups[marketKey].outcomes[record.outcome_type].push(record);
+    });
+    
+    return marketGroups;
+}
+
+export function formatGameName(record) {
+    if (record.player_1 && record.player_2) {
+        return `${record.player_1} vs ${record.player_2}`;
+    } else if (record.home_team && record.away_team) {
+        return `${record.away_team} @ ${record.home_team}`;
+    } else if (record.game_name) {
+        return record.game_name;
+    } else {
+        return `Game ${record.outcome_id?.split('_')[0] || 'Unknown'}`;
+    }
+}
+
+export function renderDataTable(data, isMobile = false) {
+    const container = document.getElementById('data-results') || createDataContainer();
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <h3>No Data Available</h3>
+                <p>No betting data found matching your criteria.</p>
+            </div>
+        `;
+        return;
+    }
+
+    if (isMobile) {
+        renderMobileDataCards(data, container);
+    } else {
+        renderDesktopDataTable(data, container);
+    }
+}
+
+function renderDesktopDataTable(data, container) {
+    const groupedData = groupDataByMarket(data);
+    
+    container.innerHTML = `
+        <div class="data-header">
+            <h2>📊 Betting Data</h2>
+            <div class="stats-summary">
+                <span class="stat-item">
+                    <strong>${data.length}</strong> Total Records
+                </span>
+                <span class="stat-item">
+                    <strong>${Object.keys(groupedData).length}</strong> Markets
+                </span>
+                <span class="stat-item">
+                    <strong>${new Set(data.map(d => d.book)).size}</strong> Books
+                </span>
+            </div>
+        </div>
+
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Game</th>
+                        <th>Market</th>
+                        <th>Outcome</th>
+                        <th>Book</th>
+                        <th>Odds</th>
+                        <th>EV</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(record => renderDataTableRow(record)).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    addBetButtonListeners();
+}
+
+function renderMobileDataCards(data, container) {
+    const groupedData = groupDataByMarket(data);
+    
+    container.innerHTML = `
+        <div class="data-header mobile">
+            <h2>📊 Betting Data</h2>
+            <div class="stats-summary mobile">
+                <div class="stat-item">
+                    <span class="stat-number">${data.length}</span>
+                    <span class="stat-label">Records</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">${Object.keys(groupedData).length}</span>
+                    <span class="stat-label">Markets</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">${new Set(data.map(d => d.book)).size}</span>
+                    <span class="stat-label">Books</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-cards-container">
+            ${data.map(record => renderDataCard(record)).join('')}
+        </div>
+    `;
+    
+    addBetButtonListeners();
+}
+
+function renderDataTableRow(record) {
+    const evClass = record.ev > 0 ? 'positive-ev' : 'negative-ev';
+    const gameNameFormatted = formatGameName(record);
+    
+    return `
+        <tr class="data-row">
+            <td class="game-info">
+                <div class="game-name">${gameNameFormatted}</div>
+                <div class="game-details">
+                    ${record.sport ? `<span class="sport">${record.sport}</span>` : ''}
+                    ${record.live ? '<span class="live-badge">LIVE</span>' : ''}
+                </div>
+            </td>
+            <td class="market-info">
+                <div class="market-name">${record.display_name || record.market_type || 'Unknown'}</div>
+                ${record.spread ? `<div class="spread">Spread: ${record.spread}</div>` : ''}
+            </td>
+            <td class="outcome-info">
+                <span class="outcome-type">${record.outcome_type || 'Unknown'}</span>
+            </td>
+            <td class="book-info">
+                <span class="book-name">${record.book}</span>
+            </td>
+            <td class="odds-info">
+                <span class="odds">${record.american_odds || 'N/A'}</span>
+            </td>
+            <td class="ev-info ${evClass}">
+                <span class="ev-value">${record.ev ? record.ev.toFixed(2) + '%' : 'N/A'}</span>
+            </td>
+            <td class="action-info">
+                ${record.deeplink ? `
+                    <button class="bet-button" data-deeplink="${record.deeplink}" data-book="${record.book}">
+                        Bet Now
+                    </button>
+                ` : '<span class="no-link">No Link</span>'}
+            </td>
+        </tr>
+    `;
+}
+
+function renderDataCard(record) {
+    const evClass = record.ev > 0 ? 'positive-ev' : 'negative-ev';
+    const gameNameFormatted = formatGameName(record);
+    
+    return `
+        <div class="data-card">
+            <div class="card-header">
+                <div class="game-info">
+                    <h3 class="game-name">${gameNameFormatted}</h3>
+                    <div class="game-meta">
+                        ${record.sport ? `<span class="sport">${record.sport}</span>` : ''}
+                        ${record.live ? '<span class="live-badge">LIVE</span>' : ''}
+                    </div>
+                </div>
+                <div class="ev-indicator ${evClass}">
+                    <span class="ev-value">${record.ev ? record.ev.toFixed(2) + '%' : 'N/A'}</span>
+                    <span class="ev-label">EV</span>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="market-info">
+                    <span class="market-name">${record.display_name || record.market_type || 'Unknown'}</span>
+                    ${record.spread ? `<span class="spread">Spread: ${record.spread}</span>` : ''}
+                </div>
+                
+                <div class="outcome-info">
+                    <span class="outcome-type">${record.outcome_type || 'Unknown'}</span>
+                </div>
+                
+                <div class="betting-info">
+                    <div class="book-odds">
+                        <span class="book-name">${record.book}</span>
+                        <span class="odds">${record.american_odds || 'N/A'}</span>
+                    </div>
+                    
+                    ${record.deeplink ? `
+                        <button class="bet-button mobile" data-deeplink="${record.deeplink}" data-book="${record.book}">
+                            <span class="bet-icon">🎯</span>
+                            Bet on ${record.book}
+                        </button>
+                    ` : `
+                        <div class="no-link-notice">
+                            <span>No direct link available</span>
+                        </div>
+                    `}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createDataContainer() {
+    const container = document.createElement('div');
+    container.id = 'data-results';
+    container.className = 'data-results-container';
+    document.body.appendChild(container);
+    return container;
+}
+
 // CSS Styles - Add these to your stylesheet
 export const arbitrageStyles = `
 .arbitrage-results-container {
@@ -839,17 +1075,148 @@ export const arbitrageStyles = `
     color: #374151;
 }
 
+/* Data Table Styles */
+.data-results-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.data-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.data-table-container {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    background: #f8fafc;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.data-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+}
+
+.data-row:hover {
+    background: #f9fafb;
+}
+
+.positive-ev {
+    color: #059669;
+}
+
+.negative-ev {
+    color: #dc2626;
+}
+
+.ev-value {
+    font-weight: 600;
+}
+
+.data-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.data-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.data-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+}
+
+.data-card .card-header {
+    padding: 15px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.data-card .card-body {
+    padding: 15px;
+}
+
+.ev-indicator {
+    text-align: right;
+}
+
+.ev-indicator .ev-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.ev-label {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.betting-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.book-odds {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.book-name {
+    font-weight: 600;
+    color: #374151;
+}
+
+.no-link {
+    color: #6b7280;
+    font-style: italic;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-    .arbitrage-results-container {
+    .arbitrage-results-container,
+    .data-results-container {
         padding: 10px;
     }
     
-    .arbitrage-header {
+    .arbitrage-header,
+    .data-header {
         padding: 20px;
     }
     
-    .arbitrage-header h2 {
+    .arbitrage-header h2,
+    .data-header h2 {
         font-size: 1.8rem;
     }
     
@@ -870,12 +1237,20 @@ export const arbitrageStyles = `
         grid-template-columns: 1fr;
     }
     
-    .arbitrage-table-container {
+    .arbitrage-table-container,
+    .data-table-container {
         overflow-x: auto;
     }
     
-    .arbitrage-table {
+    .arbitrage-table,
+    .data-table {
         min-width: 800px;
+    }
+    
+    .betting-info {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
     }
 }
 `;
