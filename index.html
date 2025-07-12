@@ -1,0 +1,185 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Betting Data Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
+    <link rel="shortcut icon" href="favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="favicon/site.webmanifest" />
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Live Betting Data Dashboard</h1>
+            <p>Real-time sports betting arbitrage opportunities</p>
+        </div>
+
+        <div class="status-bar-minimal">
+            <div class="minimal-group">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="status-indicator live" id="statusIndicator"></div>
+                    <span class="status-text" id="statusText">Connected</span>
+                </div>
+                <div class="minimal-stat">Total: <strong id="totalRecords">0</strong></div>
+                <div class="minimal-stat">Live: <strong class="live-count" id="liveCount">0</strong></div>
+                <div class="minimal-stat">Pre: <strong class="pre-count" id="prematchCount">0</strong></div>
+            </div>
+            <div class="minimal-group">
+                <div class="auto-refresh-controls">
+                    <span class="auto-refresh-label">Auto:</span>
+                    <label class="refresh-toggle">
+                        <input type="checkbox" id="refreshToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <select id="refreshInterval" class="refresh-select">
+                        <option value="1">1s</option>
+                        <option value="3" selected>3s</option>
+                        <option value="5">5s</option>
+                        <option value="10">10s</option>
+                        <option value="30">30s</option>
+                        <option value="60">1m</option>
+                    </select>
+                </div>
+                <div class="minimal-stat last-update" id="lastUpdate">Last Update: Never</div>
+            </div>
+        </div>
+
+        <!-- 移动端过滤器切换 -->
+        <div class="mobile-filter-toggle">
+            <button id="toggleFilters">🔍 Filters</button>
+            <button id="toggleView">📱 View</button>
+        </div>
+
+        <div class="controls" id="filterControls">
+            <div class="filter-group">
+                <label for="bookFilter">Sportsbook</label>
+                <select id="bookFilter" class="filter-input">
+                    <option value="">All Books</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="sportFilter">Sport</label>
+                <select id="sportFilter" class="filter-input">
+                    <option value="">All Sports</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="evFilter">Min EV %</label>
+                <input type="number" id="evFilter" class="filter-input" placeholder="2.5" step="0.1">
+            </div>
+            <div class="filter-group">
+                <label for="liveFilter">Type</label>
+                <select id="liveFilter" class="filter-input">
+                    <option value="">All</option>
+                    <option value="true">Live</option>
+                    <option value="false">Pre</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="searchFilter">Search</label>
+                <input type="text" id="searchFilter" class="filter-input" placeholder="Team, player...">
+            </div>
+        </div>
+
+        <!-- 列过滤器 -->
+        <div class="column-filter-row desktop-only">
+            <input type="text" placeholder="Filter Status..." data-column="0" class="column-filter-input">
+            <input type="text" placeholder="Filter Book..." data-column="1" class="column-filter-input">
+            <input type="text" placeholder="Filter Game..." data-column="2" class="column-filter-input">
+            <input type="text" placeholder="Filter Market..." data-column="3" class="column-filter-input">
+            <input type="text" placeholder="Filter Outcome Type..." data-column="4" class="column-filter-input">
+            <input type="text" placeholder="Filter EV..." data-column="5" class="column-filter-input">
+            <input type="text" placeholder="Filter Odds..." data-column="6" class="column-filter-input">
+            <input type="text" placeholder="Filter Prob..." data-column="7" class="column-filter-input">
+            <input type="text" placeholder="Filter Spread..." data-column="8" class="column-filter-input">
+            <input type="text" placeholder="Filter Sport..." data-column="9" class="column-filter-input">
+        </div>
+
+        <div class="table-container">
+            <!-- 桌面版表格 -->
+            <table id="dataTable" class="desktop-table">
+                <thead>
+                    <tr>
+                        <th data-sort="status">Status <span class="sort-indicator"></span></th>
+                        <th data-sort="book">Book <span class="sort-indicator"></span></th>
+                        <th data-sort="game">Game <span class="sort-indicator"></span></th>
+                        <th data-sort="market">Market <span class="sort-indicator"></span></th>
+                        <th data-sort="outcome_type">Outcome Type <span class="sort-indicator"></span></th>
+                        <th data-sort="ev">EV % <span class="sort-indicator"></span></th>
+                        <th data-sort="odds">Odds <span class="sort-indicator"></span></th>
+                        <th data-sort="prob">True Prob <span class="sort-indicator"></span></th>
+                        <th data-sort="spread">Spread <span class="sort-indicator"></span></th>
+                        <th data-sort="sport">Sport <span class="sort-indicator"></span></th>
+                        <th>Link</th>
+                        <th>Chart</th>
+                        <th data-sort="time">Updated <span class="sort-indicator"></span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="13" class="no-data">
+                            <div class="loading-spinner"></div>
+                            Loading betting data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 移动端卡片视图 -->
+            <div id="mobileCards" class="mobile-cards">
+                <div class="loading-card">
+                    <div class="loading-spinner"></div>
+                    <p>Loading betting data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <span id="currentView" style="display: none;">regular</span>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

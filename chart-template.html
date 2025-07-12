@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Odds Chart</title>
+	<link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
+<link rel="shortcut icon" href="favicon/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
+<link rel="manifest" href="favicon/site.webmanifest" />
+    	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+    <link rel="stylesheet" href="chart-template.css">
+    </head>
+<body>
+    <div class="container">
+        <button class="back-button" onclick="window.close()">← Back to Dashboard</button>
+        
+        <!-- Bet Details Header -->
+        <div class="bet-details">
+            <h2 id="gameTitle">Loading...</h2>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Market</div>
+                    <div class="detail-value" id="marketName">Loading...</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Outcome</div>
+                    <div class="detail-value" id="outcomeType">Loading...</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Expected Value</div>
+                    <div class="detail-value" id="evValue">Loading...</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Sportsbook</div>
+                    <div class="detail-value" id="bookName">Loading...</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Sport</div>
+                    <div class="detail-value" id="sportName">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="header">
+            <h1 class="title">📈 Historical Odds Analysis</h1>
+            <div class="fair-odds">
+                <div class="fair-odds-label">Fair Line (Average)</div>
+                <div class="fair-odds-value" id="fairOddsValue">Loading...</div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-box">
+                <h3>🎯 Outcome Details</h3>
+                <div id="outcomeInfo">Loading outcome information...</div>
+            </div>
+            <div class="info-box">
+                <h3>🔗 API Endpoint</h3>
+                <div class="url-display" id="apiUrl">Loading...</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="clearBtn" onclick="clearCache()">Clear Cache</button>
+            <div class="interval-control">
+                <label for="dataInterval">Data Interval:</label>
+                <select id="dataInterval" onchange="updateDataInterval()">
+                    <option value="1">Every Point</option>
+                    <option value="2">Every 2nd Point</option>
+                    <option value="3">Every 3rd Point</option>
+                    <option value="5">Every 5th Point</option>
+                    <option value="10" selected>Every 10th Point</option>
+                    <option value="20">Every 20th Point</option>
+                </select>
+            </div>
+            <span id="status">Loading...</span>
+        </div>
+
+        <div class="loading" id="loadingDiv">
+            <div class="loading-spinner"></div>
+            <p>Fetching historical odds data...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="dataInfo" class="data-info">
+            <strong>Data Points:</strong> Showing optimized data points for better performance.
+        </div>
+
+        <div class="chart-container" id="chartContainer" style="display: none;">
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</button>
+        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">−</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="Reset Zoom">⌂</button>
+    </div>
+    <canvas id="oddsChart"></canvas>
+</div>
+
+        <div id="summary" class="summary"></div>
+    </div>
+
+    <script>
+        // Parse URL parameters and populate the header
+        function parseURLParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            const gameTitle = urlParams.get('game_name');
+            const marketName = urlParams.get('market_name');
+            const outcomeType = urlParams.get('outcome_type');
+            const evValue = urlParams.get('ev_value');
+            const bookName = urlParams.get('book_name');
+            const sportName = urlParams.get('sport');
+                      
+            // Populate header information
+            if (gameTitle) {
+                document.getElementById('gameTitle').textContent = decodeURIComponent(gameTitle);
+            }
+            if (marketName) {
+                document.getElementById('marketName').textContent = decodeURIComponent(marketName);
+            }
+            if (outcomeType) {
+                document.getElementById('outcomeType').textContent = decodeURIComponent(outcomeType);
+            }
+            if (evValue) {
+                const evElement = document.getElementById('evValue');
+                evElement.textContent = evValue;
+                // Add color based on EV value
+                if (evValue.includes('%')) {
+                    const evNum = parseFloat(evValue.replace('%', ''));
+                    evElement.className = evNum > 0 ? 'ev-positive' : 'ev-negative';
+                }
+            }
+            if (bookName) {
+                document.getElementById('bookName').textContent = decodeURIComponent(bookName);
+            }
+            if (sportName) {
+                document.getElementById('sportName').textContent = decodeURIComponent(sportName);
+            }
+           
+        }
+        
+        // Call on page load
+        document.addEventListener('DOMContentLoaded', parseURLParameters);
+    </script>
+    <script src="chart-template.js"></script>
+</body>
+</html>
