@@ -1,6 +1,6 @@
 import { fetchOpenOddsData, fetchCloudfrontData, fetchAWSData, processData, findGameInfo, findGameInfoFromCloudfront } from './dataFetching.js';
 import { renderTable, renderDesktopTable, renderMobileCards, renderArbitrageDesktopTable, renderArbitrageMobileCards, groupDataByMarket } from './rendering.js';
-import { findArbitrageOpportunities, debugDataStructure, debugMarketGrouping, calculateArbitrageStakes, americanOddsToImpliedProbability, calculatePayout } from './arbitrage.js';
+import { findArbitrageOpportunities, debugDataStructure, debugMarketGrouping, calculateArbitrageStakes, americanOddsToImpliedProbability, calculatePayout, showArbitrageOpportunities } from './arbitrage.js';
 import { applyFilters, updateFilterOptions, updateSelectOptions, setupColumnFilters, setupSorting, updateSortIndicators, getCellValue, getSortValue } from './filters.js';
 import { formatGameName, formatTimestamp, formatTimestampEST, getTimestampValue, getBookLogo, getBookInitials, showError, updateCounts } from './utils.js';
 import { setupEventListeners, setupMobileHandlers, toggleArbitrageView, handleVisibilityChange } from './events.js';
@@ -113,6 +113,7 @@ export class BettingDataScraper {
     calculateArbitrageStakes = calculateArbitrageStakes;
     americanOddsToImpliedProbability = americanOddsToImpliedProbability;
     calculatePayout = calculatePayout;
+    showArbitrageOpportunities = showArbitrageOpportunities;
     applyFilters = applyFilters;
     updateFilterOptions = updateFilterOptions;
     updateSelectOptions = updateSelectOptions;
