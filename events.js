@@ -2,27 +2,38 @@ import { showArbitrageOpportunities } from './arbitrage.js';
 
 export function setupEventListeners() {
     ['bookFilter', 'sportFilter', 'evFilter', 'liveFilter', 'searchFilter'].forEach(id => {
-        document.getElementById(id).addEventListener('change', () => this.applyFilters());
-        document.getElementById(id).addEventListener('input', () => this.applyFilters());
-    });
-
-    document.getElementById('refreshToggle').addEventListener('change', (e) => {
-        this.autoRefreshEnabled = e.target.checked;
-        if (this.autoRefreshEnabled) {
-            this.startAutoRefresh();
-            this.updateStatus('Auto refresh enabled', 'success');
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', () => this.applyFilters());
+            element.addEventListener('input', () => this.applyFilters());
         } else {
-            this.stopAutoRefresh();
-            this.updateStatus('Auto refresh paused', 'paused');
+            console.warn(`Element with ID ${id} not found`);
         }
     });
 
-    document.getElementById('refreshInterval').addEventListener('change', (e) => {
-        this.refreshIntervalTime = parseInt(e.target.value) * 1000;
-        if (this.autoRefreshEnabled) {
-            this.startAutoRefresh();
-        }
-    });
+    const refreshToggle = document.getElementById('refreshToggle');
+    if (refreshToggle) {
+        refreshToggle.addEventListener('change', (e) => {
+            this.autoRefreshEnabled = e.target.checked;
+            if (this.autoRefreshEnabled) {
+                this.startAutoRefresh();
+                this.updateStatus('Auto refresh enabled', 'success');
+            } else {
+                this.stopAutoRefresh();
+                this.updateStatus('Auto refresh paused', 'paused');
+            }
+        });
+    }
+
+    const refreshInterval = document.getElementById('refreshInterval');
+    if (refreshInterval) {
+        refreshInterval.addEventListener('change', (e) => {
+            this.refreshIntervalTime = parseInt(e.target.value) * 1000;
+            if (this.autoRefreshEnabled) {
+                this.startAutoRefresh();
+            }
+        });
+    }
 
     window.addEventListener('resize', () => {
         const wasMobile = this.isMobileView;
@@ -122,21 +133,30 @@ export function toggleArbitrageView() {
     console.log('DEBUG: toggleArbitrageView called, this:', this);
     console.log('DEBUG: showArbitrageOpportunities available:', typeof this.showArbitrageOpportunities);
     
-    const currentView = document.getElementById('currentView').textContent;
+    const currentView = document.getElementById('currentView');
     const arbitrageBtn = document.getElementById('arbitrageToggle');
     
-    if (currentView === 'regular') {
-        if (typeof this.showArbitrageOpportunities !== 'function') {
-            console.error('ERROR: showArbitrageOpportunities is not a function');
-            return;
-        }
+    if (!currentView || !arbitrageBtn) {
+        console.error('Required elements not found:', {
+            currentView: !!currentView,
+            arbitrageBtn: !!arbitrageBtn
+        });
+        return;
+    }
+    
+    if (typeof this.showArbitrageOpportunities !== 'function') {
+        console.error('ERROR: showArbitrageOpportunities is not a function');
+        return;
+    }
+    
+    if (currentView.textContent === 'regular') {
         this.showArbitrageOpportunities();
-        document.getElementById('currentView').textContent = 'arbitrage';
+        currentView.textContent = 'arbitrage';
         arbitrageBtn.textContent = '📊 Regular View';
         arbitrageBtn.style.background = '#e74c3c';
     } else {
         this.renderTable();
-        document.getElementById('currentView').textContent = 'regular';
+        currentView.textContent = 'regular';
         arbitrageBtn.textContent = '🔄 Arbitrage View';
         arbitrageBtn.style.background = '#9b59b6';
     }
