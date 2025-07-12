@@ -119,10 +119,17 @@ export function setupMobileHandlers() {
 }
 
 export function toggleArbitrageView() {
+    console.log('DEBUG: toggleArbitrageView called, this:', this);
+    console.log('DEBUG: showArbitrageOpportunities available:', typeof this.showArbitrageOpportunities);
+    
     const currentView = document.getElementById('currentView').textContent;
     const arbitrageBtn = document.getElementById('arbitrageToggle');
     
     if (currentView === 'regular') {
+        if (typeof this.showArbitrageOpportunities !== 'function') {
+            console.error('ERROR: showArbitrageOpportunities is not a function');
+            return;
+        }
         this.showArbitrageOpportunities();
         document.getElementById('currentView').textContent = 'arbitrage';
         arbitrageBtn.textContent = '📊 Regular View';
