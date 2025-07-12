@@ -1,15 +1,7 @@
 import { formatGameName } from './utils.js';
 import { renderArbitrageDesktopTable, renderArbitrageMobileCards } from './rendering.js';
 
-export function showArbitrageOpportunities() {
-    const opportunities = findArbitrageOpportunities(this.filteredData);
-    if (this.isMobileView) {
-        renderArbitrageMobileCards(opportunities);
-    } else {
-        renderArbitrageDesktopTable(opportunities);
-    }
-}
- {
+export function findArbitrageOpportunities(data) {
     console.log('🔍 Starting arbitrage analysis...');
     console.log(`📊 Total records to analyze: ${data.length}`);
     
@@ -134,6 +126,7 @@ export function showArbitrageOpportunities() {
 }
 
 export function showArbitrageOpportunities() {
+    console.log('DEBUG: showArbitrageOpportunities called, this:', this);
     const opportunities = findArbitrageOpportunities(this.filteredData);
     if (this.isMobileView) {
         renderArbitrageMobileCards(opportunities);
