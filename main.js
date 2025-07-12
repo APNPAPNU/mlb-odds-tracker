@@ -64,17 +64,27 @@ document.addEventListener('DOMContentLoaded', () => {
     arbitrageGroup.appendChild(arbitrageBtn);
     controls.appendChild(arbitrageGroup);
 
-    window.addEventListener('beforeunload', () => {
-        dashboard.destroy();
-    });
-
+    // Event delegation for chart and deeplink buttons
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('deeplink')) {
-            const row = e.target.closest('tr');
-            const link = row.dataset.link;
+        if (e.target.classList.contains('chart-btn')) {
+            const outcomeId = e.target.dataset.outcomeId;
+            const isLive = e.target.dataset.live === 'true';
+            const spread = e.target.dataset.spread;
+            const index = parseInt(e.target.dataset.index);
+            const record = dashboard.filteredData[index];
+            if (record) {
+                dashboard.openHistoricalChart(outcomeId, isLive, spread, record);
+            }
+        } else if (e.target.classList.contains('deeplink') || e.target.closest('.deeplink')) {
+            const button = e.target.classList.contains('deeplink') ? e.target : e.target.closest('.deeplink');
+            const link = button.dataset.deeplink;
             if (link) {
                 window.open(link, '_blank');
             }
         }
+    });
+
+    window.addEventListener('beforeunload', () => {
+        dashboard.destroy();
     });
 });
