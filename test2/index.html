@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betting Data Analyzer</title>
+    <style>
+        /* Your existing CSS styles here */
+        .loading { display: none; }
+        .error { color: red; }
+        .status { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Betting Data Analyzer</h1>
+        
+        <!-- Status and controls -->
+        <div class="controls">
+            <button id="refreshBtn">🔄 Refresh Data</button>
+            <button id="arbitrageToggle">🔄 Arbitrage View</button>
+            <button id="exportBtn">📊 Export CSV</button>
+            <button id="autoRefreshBtn">⏰ Auto Refresh</button>
+        </div>
+        
+        <div id="status" class="status">Ready</div>
+        <div id="loading" class="loading">Loading...</div>
+        
+        <!-- Filter controls -->
+        <div id="filters">
+            <select id="sportFilter">
+                <option value="">All Sports</option>
+            </select>
+            <select id="bookFilter">
+                <option value="">All Books</option>
+            </select>
+            <!-- Add more filter controls as needed -->
+        </div>
+        
+        <!-- Current view indicator -->
+        <div id="currentView" style="display: none;">regular</div>
+        
+        <!-- Desktop table view -->
+        <div id="desktopView">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Game</th>
+                        <th>Market</th>
+                        <th>Outcome</th>
+                        <th>Odds</th>
+                        <th>Book</th>
+                        <th>Timestamp</th>
+                        <!-- Add more headers as needed -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Mobile card view -->
+        <div id="mobileCards" style="display: none;">
+            <!-- Mobile cards will be populated here -->
+        </div>
+        
+        <!-- Record counts -->
+        <div id="recordCounts">
+            <span id="totalRecords">Total: 0</span>
+            <span id="filteredRecords">Filtered: 0</span>
+        </div>
+    </div>
+
+    <!-- IMPORTANT: Use type="module" for ES6 imports -->
+    <script type="module">
+        // Import your main controller
+        import { BettingDataAnalyzer } from './js/main-controller.js';
+        
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('🚀 Initializing Betting Data Analyzer...');
+                
+                // Create and initialize the analyzer
+                const analyzer = new BettingDataAnalyzer();
+                await analyzer.init();
+                
+                // Make it globally accessible for debugging
+                window.bettingAnalyzer = analyzer;
+                
+                console.log('✅ Application initialized successfully');
+            } catch (error) {
+                console.error('❌ Failed to initialize application:', error);
+                document.getElementById('status').textContent = 'Error: Failed to initialize';
+            }
+        });
+    </script>
+</body>
+</html>
